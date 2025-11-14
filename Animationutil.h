@@ -6,7 +6,10 @@
 #define GL_ANIMATIONUTIL_H
 #include "vender/Animation/Timeutil.h"
 
-class Animationutil  {
+#include "vender/Animation/Timeutil.h"
+#include <algorithm> // 为了 std::max/min
+
+class Animationutil {
 private:
     double m_duration;
     double m_endpoint;
@@ -14,75 +17,70 @@ private:
 public:
     enum class Direction {
         EnableUp,
-        Disble
+        Disable
     };
+
     Direction direction;
-    Animationutil(double p_ms, double p_endPoint, Direction p_direction):m_duration(p_ms),m_endpoint(p_endPoint),direction(p_direction){}
-    ~Animationutil(){};
     Timeutil timeutil;
 
-    inline Direction opposite() {
-        if (direction == Direction::EnableUp) {
-            return (direction == Direction::EnableUp) ? Direction::Disble : Direction::EnableUp;
-        }
-    };
+    Animationutil(double p_ms, double p_endPoint, Direction p_direction)
+            : m_duration(p_ms), m_endpoint(p_endPoint), direction(p_direction) {}
 
-//virtual
+    virtual ~Animationutil() {}
+
+    inline Direction opposite() {
+        return (direction == Direction::EnableUp) ? Direction::Disable : Direction::EnableUp;
+    }
+
     virtual double getEquation(double x) const = 0;
-//      eg:  std::cout << "Animal makes a generic sound..." << std::endl;
-//bool
+
     bool isDone() {
+        if (m_duration <= 0) return true;
         return timeutil.hasTimeElapsed(m_duration);
     }
+
     bool finished(Direction p_direction) {
-        return isDone() && direction==p_direction;
+        return isDone() && direction == p_direction;
     }
-    bool correctOutput() {
-        return false;
-    }
-//    void
+
     void setDuration(double p_duration) {
         m_duration = p_duration;
     }
+
     void resetTime() {
         timeutil.reset();
     }
-//    get and set
-//getter and setter
-    inline double getLinearout() {
-        return 1 - ((timeutil.getElapseTime() / (double) m_duration) * m_endpoint);
-//`Elapsed Time` (已过总时间)”的公式
-    }
 
-    inline double getendPoint() {
+    inline double getendPoint() const {
         return m_endpoint;
     }
 
-    inline double setendPoint(double p_endPoint) {
+    inline void setendPoint(double p_endPoint) {
         m_endpoint = p_endPoint;
     }
-    inline Direction getDirection() {
+
+    inline Direction getDirection() const {
         return direction;
     }
 
     inline double getOutput() {
+        if (m_duration <= 0.0) {
+            return (direction == Direction::EnableUp) ? m_endpoint : 0.0;
+        }
+
+        double progress = timeutil.getElapseTime() / m_duration;
+
+        // 限制在 [0.0, 1.0] 范围内
+        progress = std::max(0.0, std::min(progress, 1.0));
+
+        double eased_value = getEquation(progress);
+
         if (direction == Direction::EnableUp) {
-            if (isDone()) {
-                return m_endpoint;//反向播放完毕，回到起点 0
-            }
-            // 反向播放的核心公式
-            double calucate_progress = timeutil.getElapseTime() / (double) m_duration;
-            return m_endpoint * getEquation(calucate_progress);
+            return m_endpoint * eased_value;
         } else {
-            if (isDone()) {
-                return 0.0;
-            }
-            if (correctOutput()) {
-                double revTime = std::fmin(m_duration, std::fmax(0, m_duration - timeutil.getElapseTime()));
-                return getEquation(revTime / (double) m_duration) * m_endpoint;}
-            return (1 - getEquation(timeutil.getElapseTime() / (double) m_duration)) * m_endpoint;
+            return m_endpoint * (1.0 - eased_value);
         }
     }
 };
-#include <string>
 #endif //GL_ANIMATIONUTIL_H
+

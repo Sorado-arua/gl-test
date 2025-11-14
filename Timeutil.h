@@ -11,26 +11,25 @@
 class Timeutil {
 private:
     double m_lasttime;
-    double m_elapsetime;
 public:
-Timeutil():m_lasttime((float)glfwGetTime()){
-};
-~Timeutil(){};
-void setTime(double time){
-    m_lasttime=time;
-};
-void reset(){
-        m_lasttime=(float)glfwGetTime();
+    Timeutil() : m_lasttime((double ) glfwGetTime()) {
     };
-void elapseTime(double time){
-m_elapsetime=(float)glfwGetTime()-m_lasttime;
-};
-//
+
+    ~Timeutil() {};
     inline double getElapseTime() const {
-        return m_elapsetime;
+        return glfwGetTime() - m_lasttime;
+    };
+
+//if the running time =lastime that you need
+    void setTime(double time) {
+        m_lasttime = time;
+    };
+
+    void reset() {
+        m_lasttime = (double ) glfwGetTime();
     };
     bool hasTimeElapsed(double p_time) {
-        if ((double)glfwGetTime() - m_lasttime >= p_time) {
-            return hasTimeElapsed((long) p_time);
-        };};};
+        return getElapseTime() >= p_time;
+    };
+};
 #endif //GL_TIMEUTIL_H
